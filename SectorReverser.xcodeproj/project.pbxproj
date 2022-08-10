@@ -29,8 +29,6 @@
 /* Begin PBXFileReference section */
 		9FB1A3E728A195EC006E27A9 /* SectorReverser */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SectorReverser; sourceTree = BUILT_PRODUCTS_DIR; };
 		9FB1A3EA28A195EC006E27A9 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
-		9FB1A3F528A20C35006E27A9 /* simdjson.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = simdjson.h; sourceTree = "<group>"; };
-		9FB1A3F728A20C35006E27A9 /* libsimdjson.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libsimdjson.dylib; sourceTree = "<group>"; };
 		9FB1A3FA28A20EDE006E27A9 /* circular_buffer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = circular_buffer.hpp; sourceTree = "<group>"; };
 		9FB1A3FD28A20EDE006E27A9 /* ctime */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ctime; sourceTree = "<group>"; };
 		9FB1A3FE28A20EDE006E27A9 /* cstdlib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = cstdlib; sourceTree = "<group>"; };
@@ -15153,7 +15151,6 @@
 			isa = PBXGroup;
 			children = (
 				9FB1A3F428A20C35006E27A9 /* include */,
-				9FB1A3F628A20C35006E27A9 /* lib */,
 				9FB1A3F128A1C220006E27A9 /* Resources */,
 				9FB1A3EA28A195EC006E27A9 /* main.cpp */,
 			);
@@ -15172,17 +15169,8 @@
 			isa = PBXGroup;
 			children = (
 				9FB1A3F928A20EDE006E27A9 /* boost */,
-				9FB1A3F528A20C35006E27A9 /* simdjson.h */,
 			);
 			path = include;
-			sourceTree = "<group>";
-		};
-		9FB1A3F628A20C35006E27A9 /* lib */ = {
-			isa = PBXGroup;
-			children = (
-				9FB1A3F728A20C35006E27A9 /* libsimdjson.dylib */,
-			);
-			path = lib;
 			sourceTree = "<group>";
 		};
 		9FB1A3F928A20EDE006E27A9 /* boost */ = {
