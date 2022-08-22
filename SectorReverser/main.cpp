@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include "boost/algorithm/string.hpp"
 #include "boost/json/src.hpp"
+#include <string>
 
 /**
  Read up to 4 bytes starting from a specified position in a file.
@@ -157,7 +158,7 @@ const std::string getArtPrefix(const uint32_t & tile) {
   const uint8_t tileType = (uint8_t) tile;
   std::unordered_map<uint32_t, std::string> tilesOfProperType {};
   if (tileType == 0xC0) {
-	std::cout << "it's a normal tile. Tile: " << std::hex << tile << std::endl;
+//	std::cout << "it's a normal tile. Tile: " << std::hex << tile << std::endl;
 	if (isTileOutdoor) {
 	  if (isTileFlippable) {
 		tilesOfProperType = outdoorFlippable;
@@ -180,9 +181,8 @@ const std::string getArtPrefix(const uint32_t & tile) {
   }
   std::unordered_map<uint32_t, std::string>::const_iterator pGot = tilesOfProperType.find(tileId);
   if (pGot == tilesOfProperType.end()) {
-//	throw std::runtime_error("Couldn't map tileId to art prefix. tileId = " + std::to_string(tileId));
 	std::cout << "Couldn't map tileId to art prefix. tileId = " << tileId;
-	return std::string();
+	return std::string("error");
   }
   std::string artPrefix = tileType == 0xC0 ? pGot->second + "bse" : pGot->second;
   boost::algorithm::to_lower(artPrefix);
@@ -216,11 +216,47 @@ int main(int argc, const char * argv[]) {
 		  char1Number = char2Array.at(char2Number) == char1Array.at(char2Number) && isLeastSignificantBitSet ? (tile >> 9 & 7) + 8 : tile >> 9 & 7;
 		}
 		char1Number = char1Number >= 8 ? char1Number - 8 : char1Number;
-		const char char1Value = char1Values.at(char1Number);
 		const std::string artPrefix = getArtPrefix(tile);
+		char char1Value {};
+		char char2Value {};
 		// A hack to address some inconsistencies
-		const char char2Value = artPrefix.find("bse") == std::string::npos ? char2Values.at(char2Number) : '0';
-		const std::string art = artPrefix == "" ? "unknown" : artPrefix + char2Value + char1Value + "_0.bmp";
+		if (artPrefix.find("bse") == std::string::npos) {
+		  char1Value = char1Values.at(char1Number);
+		  char2Value = char2Values.at(char2Number);
+		  if (artPrefix.compare("drtgrs") == 0) {
+			// Use default art if we get non-existent art name
+			if (char2Value != '2' && char2Value != '4' && char1Value != 'a' && char1Value != 'b') {
+			  char2Value = 'a';
+			  char1Value = 'a';
+			}
+		  }
+		  // Use default art if we get non-existent art name
+		  if (artPrefix.compare("sw2sw3") == 0) {
+			if (char2Value > 0xA) {
+			  char2Value = 'a';
+			  char1Value = 'a';
+			}
+		  }
+		} else {
+		  if (artPrefix.compare("sw1bse") == 0 || artPrefix.compare("sw2bse") == 0 || artPrefix.compare("sw3bse") == 0) {
+			char1Value = char1Number > 1 ? 'b' : char1Values.at(char1Number);
+		  } else {
+			char1Value = char1Number > 3 ? 'd' : char1Values.at(char1Number);
+		  }
+		  char2Value = '0';
+		}
+		std::string art {};
+		if (artPrefix.compare("") == 0) {
+		  // Placeholder for textures that represent large objects like crashed IFS Zephyr
+		  art = "tstbse0a_0";
+		} else if (artPrefix.compare("error") == 0) {
+		  // Default terrain tile - means something went wrong and we have no idea what tile should be there
+		  art = "drttst9a_0";
+		} else
+		  art = artPrefix + char2Value + char1Value + "_0";
+
+//		if (char2Value != '0' && char2Value != '2' && char2Value != '4' && char1Value != 'a' && char1Value != 'b')
+//		  std::cout << "Potentially problematic art: " << art << std::endl;
 		
 		boost::json::object tileObj;
 		tileObj["instanceId"] = currentTile - 1;
