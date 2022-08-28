@@ -6,6 +6,9 @@
          contextName = "main:main.cpp">
          <PersistentStrings>
             <PersistentString
+               value = "originalTile">
+            </PersistentString>
+            <PersistentString
                value = "currentTile">
             </PersistentString>
          </PersistentStrings>

@@ -14,37 +14,6 @@
 #include "boost/json/src.hpp"
 #include <string>
 
-/**
- Read up to 4 bytes starting from a specified position in a file.
- 
- Note: this method moves the file pointer by a number of bytes read
- 
- @param file - file to read from
- @param start - position in a file to read from inclusively
- @param length - number of bytes to read.
- @returns 4-byte unsigned integer
- */
-const uint32_t readUpTo4Bytes(std::ifstream & file, const uint32_t start, const uint32_t length) {
-  file.seekg(start, std::ios::beg);
-  std::vector<uint8_t> container = std::vector<uint8_t>(length);
-  file.read(reinterpret_cast<char*>(container.data()), length);
-  uint32_t result {};
-  memcpy(& result, container.data(), length);
-  return result;
-}
-
-const bool isOutdoor(const uint32_t & tile) {
-  return tile >> 8 & 1;
-}
-
-const bool isFlippable(const uint32_t & tile) {
-  return tile >> 7 & 1;
-}
-
-const uint32_t getTileId(const uint32_t & tile) {
-  return tile >> 22 & 0x3F;
-}
-
 const std::unordered_map<uint32_t, std::string> outdoorFlippable = std::unordered_map<uint32_t, std::string> {
   // Dirt
   std::make_pair(0, std::string("drt")),
@@ -150,43 +119,61 @@ const std::unordered_map<uint32_t, std::string> edges = std::unordered_map<uint3
   std::make_pair(35, std::string("SnwICE"))
 };
 
-const std::string getArtPrefix(const uint32_t & tile) {
-  const uint32_t tileId = getTileId(tile);
-  const bool isTileOutdoor = isOutdoor(tile);
-  const bool isTileFlippable = isFlippable(tile);
-  // Take the last byte of tile to check if it is an edge tile. C0 = normal, C1 = edge.
-  const uint8_t tileType = (uint8_t) tile;
-  std::unordered_map<uint32_t, std::string> tilesOfProperType {};
-  if (tileType == 0xC0) {
-//	std::cout << "it's a normal tile. Tile: " << std::hex << tile << std::endl;
-	if (isTileOutdoor) {
-	  if (isTileFlippable) {
-		tilesOfProperType = outdoorFlippable;
-	  } else {
-		tilesOfProperType = outdoorNonFlippable;
-	  }
-	} else {
-	  if (isTileFlippable) {
-		tilesOfProperType = indoorFlippable;
-	  } else {
-		tilesOfProperType = indoorNonFlippable;
-	  }
-	}
-  } else if (tileType == 0xC1) {
-	std::cout << "it's an edge tile. Tile: " << std::hex << tile << std::endl;
-	tilesOfProperType = edges;
+/**
+ Read up to 4 bytes starting from a specified position in a file.
+ 
+ Note: this method moves the file pointer by a number of bytes read
+ 
+ @param file - file to read from
+ @param start - position in a file to read from inclusively
+ @param length - number of bytes to read.
+ @returns 4-byte unsigned integer
+ */
+uint32_t readUpTo4Bytes(std::ifstream & file, const uint32_t start, const uint32_t length) {
+  file.seekg(start, std::ios::beg);
+  std::vector<uint8_t> container = std::vector<uint8_t>(length);
+  file.read(reinterpret_cast<char*>(container.data()), length);
+  uint32_t result {};
+  memcpy(& result, container.data(), length);
+  return result;
+}
+
+const std::string getOutdoorFlippableArtPrefix(const uint32_t & tileId) {
+  const std::unordered_map<uint32_t, std::string>::const_iterator pIter = outdoorFlippable.find(tileId);
+  if (pIter != outdoorFlippable.end()) {
+	std::string artPrefix = pIter->second + "bse";
+	boost::algorithm::to_lower(artPrefix);
+	return artPrefix;
   } else {
-	std::cout << "it's a tile of unknown type. Tile: " << std::hex << tile << std::endl;
-	return std::string();
+	throw std::runtime_error("Couldn't map tileId1 to art prefix.");
   }
-  std::unordered_map<uint32_t, std::string>::const_iterator pGot = tilesOfProperType.find(tileId);
-  if (pGot == tilesOfProperType.end()) {
-	std::cout << "Couldn't map tileId to art prefix. tileId = " << tileId;
-	return std::string("error");
+}
+
+const std::string getOutdoorFlippableEdgeArtPrefix(const uint32_t & tileId1, const uint32_t & tileId2) {
+  std::string artPrefix1 {};
+  std::string artPrefix2 {};
+  const std::unordered_map<uint32_t, std::string>::const_iterator pIter1 = outdoorFlippable.find(tileId1);
+  if (pIter1 != outdoorFlippable.end()) {
+	artPrefix1 = pIter1->second;
+	boost::algorithm::to_lower(artPrefix1);
+  } else {
+	throw std::runtime_error("Couldn't map tileId1 to art prefix.");
   }
-  std::string artPrefix = tileType == 0xC0 ? pGot->second + "bse" : pGot->second;
-  boost::algorithm::to_lower(artPrefix);
+  
+  const std::unordered_map<uint32_t, std::string>::const_iterator pIter2 = outdoorFlippable.find(tileId2);
+  if (pIter2 != outdoorFlippable.end()) {
+	artPrefix2 = pIter2->second;
+	boost::algorithm::to_lower(artPrefix2);
+  } else {
+	throw std::runtime_error("Couldn't map tileId2 to art prefix.");
+  }
+  
+  const std::string artPrefix = artPrefix1 + artPrefix2;
   return artPrefix;
+}
+
+uint32_t shr1C(uint32_t val) {
+  return val >> 0x1C;
 }
 
 int main(int argc, const char * argv[]) {
@@ -196,71 +183,88 @@ int main(int argc, const char * argv[]) {
   tiles.reserve(numTilesInSector);
   if (file.is_open()) {
 	try {
-	  const std::vector<uint8_t> char2Array = std::vector<uint8_t> { 0x0, 0x1, 0x2, 0x9, 0x4, 0x5, 0xC, 0xD, 0x2, 0x9, 0xA, 0xB, 0xC, 0xD };
-	  const std::string char2Values = std::string("06b489237ea5dc10");
-	  const std::vector<uint8_t> char1Array = std::vector<uint8_t> { 0x0, 0x1, 0x8, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x3, 0xA, 0xB, 0x6, 0x7, 0xE, 0xF };
-	  const std::string char1Values = std::string("abcdefgh");
 	  uint16_t currentTile {1};
 	  // Read all 4096 tiles from sector
 	  while (currentTile <= numTilesInSector) {
-		const uint32_t tile = readUpTo4Bytes(file, currentTile * 4, 4);
-		const uint32_t tileId = getTileId(tile);
-		const bool isLeastSignificantBitSet = tileId & 1;
-		
-		const uint32_t char2Number = isLeastSignificantBitSet ? char2Array.at(tile >> 12 & 0xF) : tile >> 12 & 0xF;
-		uint32_t char1Number {};
-		if (char2Number >= char2Array.size()) {
-		  char1Number = tile >> 9 & 7;
-		}
-		else {
-		  char1Number = char2Array.at(char2Number) == char1Array.at(char2Number) && isLeastSignificantBitSet ? (tile >> 9 & 7) + 8 : tile >> 9 & 7;
-		}
-		char1Number = char1Number >= 8 ? char1Number - 8 : char1Number;
-		const std::string artPrefix = getArtPrefix(tile);
-		char char1Value {};
-		char char2Value {};
-		// A hack to address some inconsistencies
-		if (artPrefix.find("bse") == std::string::npos) {
-		  char1Value = char1Values.at(char1Number);
-		  char2Value = char2Values.at(char2Number);
-		  if (artPrefix.compare("drtgrs") == 0) {
-			// Use default art if we get non-existent art name
-			if (char2Value != '2' && char2Value != '4' && char1Value != 'a' && char1Value != 'b') {
-			  char2Value = 'a';
-			  char1Value = 'a';
+		uint32_t tile = readUpTo4Bytes(file, currentTile * 4, 4);
+		const uint32_t originalTile = tile;
+		uint32_t leastSignificantBit {0};
+		uint32_t shiftedTile = shr1C(tile);
+		// Default tile if unknown
+		std::string art {"drttst9a_0"};
+		if (shiftedTile <= 0xE) {
+		  if (shiftedTile != 0x9) {
+			if (shiftedTile != 0xB) {
+			  if (shiftedTile == 0x0) {
+				tile = tile & 0xFFFFFFF0;
+				uint32_t tileId1 = (tile >> 0x16) & 0x3F;
+				uint32_t tileId2 = (tile >> 0x10) & 0x3F;
+				uint32_t shiftedTile3 = (tile >> 0xC) & 0xF;
+				uint32_t char2Value = (tile >> 0x9) & 0x7;
+				uint32_t isOutdoor = (tile >> 0x8) & 0x1;
+				uint32_t isFlippable = (tile >> 0x7) & 0x1;
+				uint32_t shiftedTile5 = (tile >> 0x6) & 0x1;
+				if ((isFlippable & isFlippable) != 0x0) {
+				  leastSignificantBit = originalTile & 0x0000000F;
+				  if ((isOutdoor & isOutdoor) != 0x0) {
+					if ((shiftedTile5 & shiftedTile5) != 0x0) {
+					  if (tileId2 < 0x1F) {
+						char2Value = char2Value < 0x8 ? char2Value : char2Value - 0x8;
+						if (shiftedTile3 != 0xF) {
+						  const std::string char1Str = std::string("06b489237ea5dc10");
+						  uint32_t char2 = char2Value + 0x61;
+						  uint32_t char1 = char1Str.at(shiftedTile3);
+						  char char1Ascii = static_cast<char>(char1);
+						  char char2Ascii = static_cast<char>(char2);
+						  if (tileId1 == tileId2) {
+							try {
+							  // For this type of a tile tileId1 == tileId2, so it doesnt matter which one we use
+							  const std::string artPrefix = getOutdoorFlippableArtPrefix(tileId1);
+							  art = artPrefix + char1Ascii + char2Ascii + "_0";
+							} catch (std::system_error & e) {
+							  std::cout << e.code().message() << " tileId1 = " << tileId1 << ". Original tile = " << std::hex << originalTile << std::endl;
+							}
+						  } else {
+							try {
+							  const std::string artPrefix = getOutdoorFlippableEdgeArtPrefix(tileId1, tileId2);
+							  art = artPrefix + char1Ascii + char2Ascii + "_0";
+							} catch (std::system_error & e) {
+							  std::cout << e.code().message() << " tileId1 = " << tileId1 << ". tileId2 = " << tileId2 << ". Original tile = " << std::hex << originalTile << std::endl;
+							}
+						  }
+						} else {
+						  std::cout << "shiftedTile3 is = 0xF. Original tile = " << std::hex << originalTile << std::endl;
+						}
+					  } else {
+						std::cout << "tileId2 is >= 0x1F. Original tile = " << std::hex << originalTile << std::endl;
+					  }
+					} else {
+					  std::cout << "shiftedTile5 == 0x0. Original tile = " << std::hex << originalTile << std::endl;
+					}
+				  } else {
+					std::cout << "Tile is not outdoor. Original tile = " << std::hex << originalTile << std::endl;
+				  }
+				} else {
+				  std::cout << "Tile is not flippable. Original tile = " << std::hex << originalTile << std::endl;
+				}
+			  } else {
+				std::cout << "Shifted tile is != 0x0. Original tile = " << std::hex << originalTile << std::endl;
+			  }
+			} else {
+			  std::cout << "Shifted tile is = 0xB. Original tile = " << std::hex << originalTile << std::endl;
 			}
-		  }
-		  // Use default art if we get non-existent art name
-		  if (artPrefix.compare("sw2sw3") == 0) {
-			if (char2Value > 0xA) {
-			  char2Value = 'a';
-			  char1Value = 'a';
-			}
+		  } else {
+			std::cout << "Shifted tile is = 0x9. Original tile = " << std::hex << originalTile << std::endl;
 		  }
 		} else {
-		  if (artPrefix.compare("sw1bse") == 0 || artPrefix.compare("sw2bse") == 0 || artPrefix.compare("sw3bse") == 0) {
-			char1Value = char1Number > 1 ? 'b' : char1Values.at(char1Number);
-		  } else {
-			char1Value = char1Number > 3 ? 'd' : char1Values.at(char1Number);
-		  }
-		  char2Value = '0';
+		  std::cout << "Shifted tile is > than 0xE. Original tile = " << std::hex << originalTile << std::endl;
 		}
-		std::string art {};
-		if (artPrefix.compare("") == 0) {
-		  // Placeholder for textures that represent large objects like crashed IFS Zephyr
-		  art = "tstbse0a_0";
-		} else if (artPrefix.compare("error") == 0) {
-		  // Default terrain tile - means something went wrong and we have no idea what tile should be there
-		  art = "drttst9a_0";
-		} else
-		  art = artPrefix + char2Value + char1Value + "_0";
-
-//		if (char2Value != '0' && char2Value != '2' && char2Value != '4' && char1Value != 'a' && char1Value != 'b')
-//		  std::cout << "Potentially problematic art: " << art << std::endl;
+		
 		
 		boost::json::object tileObj;
 		tileObj["instanceId"] = currentTile - 1;
 		tileObj["textureName"] = art;
+		tileObj["shouldFlip"] = (leastSignificantBit & leastSignificantBit) != 0x0 ? "1" : "0";
 		tiles.push_back(tileObj);
 		
 		++currentTile;
