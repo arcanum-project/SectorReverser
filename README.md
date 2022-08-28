@@ -18,4 +18,4 @@ Results of parsing are stored to json file with the following structure:
 }
 ```
 
-Input and output file names are currently hardcoded.
+Input and output file paths are currently hardcoded.
