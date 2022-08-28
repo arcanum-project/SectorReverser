@@ -27,6 +27,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		9F13D59928BC31D600C11694 /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		9F13D59A28BC31D700C11694 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		9FB1A3E728A195EC006E27A9 /* SectorReverser */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SectorReverser; sourceTree = BUILT_PRODUCTS_DIR; };
 		9FB1A3EA28A195EC006E27A9 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		9FB1A3FA28A20EDE006E27A9 /* circular_buffer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = circular_buffer.hpp; sourceTree = "<group>"; };
@@ -15134,6 +15136,8 @@
 		9FB1A3DE28A195EC006E27A9 = {
 			isa = PBXGroup;
 			children = (
+				9F13D59928BC31D600C11694 /* LICENSE */,
+				9F13D59A28BC31D700C11694 /* README.md */,
 				9FB1A3E928A195EC006E27A9 /* SectorReverser */,
 				9FB1A3E828A195EC006E27A9 /* Products */,
 			);
